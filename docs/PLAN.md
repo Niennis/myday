@@ -45,7 +45,7 @@ Lo uso principalmente en el computador. **El teléfono queda fuera por ahora** (
 
 ## Vistas
 Se cambia entre ellas con un selector **Día · Semana · Mes**.
-- **Diaria:** dos columnas, mañana (7:00–14:00) y tarde (14:00–21:00), para ver el día completo sin desplazarse. Bloques arrastrables (también de una columna a la otra) y estirables. Un bloque que cruza las 14:00 sigue en la columna de la tarde.
+- **Diaria:** dos columnas, mañana (7:00–14:00) y tarde (14:00–21:00), para ver el día completo sin desplazarse. Bloques arrastrables (también de una columna a la otra) y estirables. Un bloque que cruza las 14:00 sigue en la columna de la tarde. Con ‹ › se ve otro día (y "Volver a hoy"); lo que ese día no tiene hora aparece arriba, en una franja "Sin hora". Las tareas de "Lo que importa hoy" se pueden pasar (con el botón o arrastrando) al horario del día que se está viendo; en un día pasado, los bloques se ven y se abren, pero no se mueven.
 - **Semanal:** 7 columnas de lunes a domingo; hoy destacado. Cambiar de día arrastrando o con las flechas ← →. No se puede mover nada a un día que ya pasó. Al pasar algo a hoy, si tiene hora queda como bloque; si no, como tarea.
 - **Mensual:** solo para ver qué días están cargados (un punto por cosa anotada). Un clic en un día lleva a su semana.
 

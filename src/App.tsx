@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { addDays, fmt, isoDate, longToday, minutesOf, startOfDay, startOfWeek, type Day } from './lib/dates.ts';
-import { nextFreeSlot } from './lib/schedule.ts';
+import { addDays, capFirst, dateLabel, fmt, isoDate, longDay, longToday, minutesOf, startOfDay, startOfWeek, type Day } from './lib/dates.ts';
+import { DAY_START, nextFreeSlot } from './lib/schedule.ts';
+import { isBlock } from './data/types.ts';
 import { isMood, toneOf, type Mood } from './lib/tones.ts';
 import { openRepo } from './data/repo.ts';
 import type { Item, Repo } from './data/types.ts';
@@ -18,6 +19,7 @@ import { BlockDialog } from './components/BlockDialog.tsx';
 import { CaptureDialog } from './components/CaptureDialog.tsx';
 import { WeekView } from './components/WeekView.tsx';
 import { MonthView } from './components/MonthView.tsx';
+import { ToneTag } from './components/Steps.tsx';
 
 type CardId = 'ahora' | 'pomo' | 'ayer' | 'tareas';
 type View = 'day' | 'week' | 'month';
@@ -43,14 +45,20 @@ export default function App() {
   const [view, setView] = useState<View>('day');
   const [weekOffset, setWeekOffset] = useState(0);
   const [monthOffset, setMonthOffset] = useState(0);
+  // La vista diaria muestra hoy u otro día (‹ ›).
+  const [dayOffset, setDayOffset] = useState(0);
   const todayDate = useMemo(() => startOfDay(new Date(`${today}T00:00`)), [today]);
   const weekStart = useMemo(() => addDays(startOfWeek(todayDate), weekOffset * 7), [todayDate, weekOffset]);
   const monthFirst = useMemo(() => new Date(todayDate.getFullYear(), todayDate.getMonth() + monthOffset, 1), [todayDate, monthOffset]);
+  const viewDate = useMemo(() => addDays(todayDate, dayOffset), [todayDate, dayOffset]);
+  const viewDay = isoDate(viewDate);
+  const dayWhen = dayOffset < 0 ? 'past' : dayOffset === 0 ? 'today' : 'future';
   const range = useMemo(() => {
+    if (view === 'day' && viewDay !== today) return { from: viewDay, to: viewDay };
     if (view === 'week') return { from: isoDate(weekStart), to: isoDate(addDays(weekStart, 6)) };
     if (view === 'month') return { from: isoDate(monthFirst), to: isoDate(new Date(monthFirst.getFullYear(), monthFirst.getMonth() + 1, 0)) };
     return null;
-  }, [view, weekStart, monthFirst]);
+  }, [view, weekStart, monthFirst, viewDay, today]);
   const goToWeekOf = useCallback((d: Date) => {
     setWeekOffset(Math.round((startOfWeek(d).getTime() - startOfWeek(todayDate).getTime()) / (7 * 86400000)));
   }, [todayDate]);
@@ -59,6 +67,10 @@ export default function App() {
   // Todo lo de un día: hoy, los bloques por hora y después las tareas; otros días, lo anotado para ellos.
   const entriesFor = useCallback((day: Day) => (day === today ? [...blocks, ...tasks] : others.filter((i) => i.date === day).sort(byTime)),
     [today, blocks, tasks, others]);
+  // Lo del día que se ve en la vista diaria (si no es hoy, lo sin hora va en la franja "Sin hora").
+  const viewItems = viewDay === today ? items : others.filter((i) => i.date === viewDay);
+  const viewBlocks = viewDay === today ? blocks : viewItems.filter(isBlock).sort((a, b) => a.start - b.start);
+  const viewUntimed = viewDay === today ? [] : viewItems.filter((i) => !isBlock(i)).sort(byTime);
   const countFor = useCallback((day: Day) => (day === today ? items.length : others.filter((i) => i.date === day).length), [today, items, others]);
   const pomo = usePomodoro(repo, today, announce);
 
@@ -110,7 +122,17 @@ export default function App() {
   const tasksFold = useRef<HTMLButtonElement>(null);
   const [preview, setPreview] = useState<{ title: string; start: number | null } | null>(null);
   const [dropClass, setDropClass] = useState<'' | 'drop-ready' | 'drop-ready drop-target'>('');
-  const freeSlot = useCallback(() => nextFreeSlot(blocks, nowMin), [blocks, nowMin]);
+  // Las tareas se pasan al horario que se está viendo; si es un día que ya pasó, al de hoy.
+  const scheduleDay = dayWhen === 'past' ? today : viewDay;
+  const scheduleLabel = dateLabel(dayWhen === 'past' ? todayDate : viewDate, todayDate);
+  const where = scheduleDay === today ? '' : scheduleLabel.includes('mañana') ? ` de ${scheduleLabel}` : ` del ${scheduleLabel}`;
+  const scheduleBlocks = scheduleDay === today ? blocks : viewBlocks;
+  const freeSlot = useCallback(
+    () => nextFreeSlot(scheduleBlocks, scheduleDay === today ? nowMin : DAY_START),
+    [scheduleBlocks, scheduleDay, today, nowMin],
+  );
+  const toBlock = useCallback((id: string, start: number) => actions.toBlock(id, start, scheduleDay), [actions, scheduleDay]);
+  const dayNextRef = useRef<HTMLButtonElement>(null);
   const focusBlock = useCallback((id: string) => blockEls.current.get(id)?.focus(), []);
 
   // ---------- Pasos de algo: un bloque de hoy o algo de la semana ----------
@@ -202,7 +224,8 @@ export default function App() {
           <PomodoroCard pomo={pomo} folded={isFolded('pomo')} onFold={(f) => fold('pomo', f)} />
           <YesterdayCard items={overdue} today={today} onResolve={actions.resolveOverdue} folded={isFolded('ayer')} onFold={(f) => fold('ayer', f)}
             focusAfter={() => tasksFold.current?.focus()} />
-          <TasksCard tasks={tasks} actions={actions} freeSlot={freeSlot} lanes={lanes} onPreview={setPreview}
+          <TasksCard tasks={tasks} actions={actions} freeSlot={freeSlot} toBlock={toBlock} where={where}
+            canDrop={view === 'day' && dayWhen !== 'past'} lanes={lanes} onPreview={setPreview}
             focusBlock={focusBlock} onDelete={deleteItem} folded={isFolded('tareas')} onFold={(f) => fold('tareas', f)}
             dropClass={dropClass} cardRef={taskCard} foldRef={tasksFold} />
         </section>
@@ -223,11 +246,42 @@ export default function App() {
                 Clic en un bloque para ver sus pasos. Arrástralo para moverlo (a otra hora, a la otra columna o a la lista de tareas)
                 y estira su borde inferior para cambiar la duración. Con teclado: Enter, flechas y Mayús + flechas.
               </p>
-              <DayView blocks={blocks} nowMin={nowMin} actions={actions} lanes={lanes} blockEls={blockEls} taskCard={taskCard}
+              <div className="period-nav day-nav">
+                <button type="button" className="icon-btn" aria-label="Día anterior" onClick={() => setDayOffset(dayOffset - 1)}><span aria-hidden="true">‹</span></button>
+                <p className="period" aria-live="polite">
+                  {dayOffset === 0 ? `Hoy, ${longDay(viewDate)}` : dayOffset === 1 ? `Mañana, ${longDay(viewDate)}` : capFirst(longDay(viewDate))}
+                </p>
+                <button type="button" className="icon-btn" aria-label="Día siguiente" ref={dayNextRef} onClick={() => setDayOffset(dayOffset + 1)}><span aria-hidden="true">›</span></button>
+                {dayOffset !== 0 && (
+                  <button type="button" className="btn btn-small" onClick={() => { setDayOffset(0); dayNextRef.current?.focus(); }}>Volver a hoy</button>
+                )}
+              </div>
+              {viewUntimed.length > 0 && (
+                <section className="untimed" aria-labelledby="untimed-title">
+                  <h3 id="untimed-title">Sin hora</h3>
+                  <ul>
+                    {viewUntimed.map((i) => (
+                      <li key={i.id}>
+                        <button type="button" className={`witem${i.done ? ' done' : ''}`} data-key={i.id}
+                          onClick={(e) => setOpened({ id: i.id, el: e.currentTarget, when: capFirst(dateLabel(viewDate, todayDate)) })}>
+                          <span className="w-title">{i.title}{i.alert && <><span aria-hidden="true"> 🔔</span><span className="sr-only">, con aviso</span></>}</span>{' '}
+                          <ToneTag tone={i.tone} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              <DayView blocks={viewBlocks} when={dayWhen} nowMin={nowMin} actions={actions} lanes={lanes} blockEls={blockEls} taskCard={taskCard}
                 preview={preview} onDropState={setDropClass}
+                onToList={(b) => {
+                  actions.toTask(b.id, today);
+                  announce(`«${b.title}» pasó a la lista de tareas${viewDay === today ? '' : ' de hoy'}.`);
+                }}
                 openBlock={(b) => {
                   const el = blockEls.current.get(b.id);
-                  if (el) setOpened({ id: b.id, el, when: `${fmt(b.start)} – ${fmt(b.end)}` });
+                  const time = `${fmt(b.start)} – ${fmt(b.end)}`;
+                  if (el) setOpened({ id: b.id, el, when: viewDay === today ? time : `${capFirst(dateLabel(viewDate, todayDate))} · ${time}` });
                 }} />
             </div>
           )}

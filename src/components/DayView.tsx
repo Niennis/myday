@@ -1,5 +1,6 @@
 // Vista diaria en dos columnas (mañana y tarde). Los bloques se arrastran, se estiran desde el borde
 // inferior y se mueven con el teclado. Un bloque que cruza las 14:00 sigue en la columna de la tarde.
+// Muestra hoy u otro día; los días pasados se pueden ver y abrir, pero sus bloques no se mueven.
 import { useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import { fmt } from '../lib/dates.ts';
 import { clamp, DAY_END, DAY_START, DEFAULT_LEN, HALVES, halfOf, isOver, position, snap, SPLIT, STEP, timeAt } from '../lib/schedule.ts';
@@ -12,6 +13,8 @@ type Block = Item & { start: number; end: number };
 
 interface Props {
   blocks: Block[];
+  /** Si el día que se ve ya pasó, es hoy o viene. */
+  when: 'past' | 'today' | 'future';
   nowMin: number;
   actions: DayActions;
   lanes: RefObject<HTMLElement[]>;
@@ -20,10 +23,14 @@ interface Props {
   /** Lo que se está arrastrando desde la lista de tareas. */
   preview: { title: string; start: number | null } | null;
   onDropState: (s: '' | 'drop-ready' | 'drop-ready drop-target') => void;
+  /** Se soltó un bloque sobre la lista de tareas de hoy. */
+  onToList: (b: Block) => void;
   openBlock: (b: Block) => void;
 }
 
-export function DayView({ blocks, nowMin, actions, lanes, blockEls, taskCard, preview, onDropState, openBlock }: Props) {
+export function DayView({ blocks, when, nowMin, actions, lanes, blockEls, taskCard, preview, onDropState, onToList, openBlock }: Props) {
+  const past = when === 'past';
+  const isPast = (b: Block) => past || (when === 'today' && b.end <= nowMin);
   const announce = useAnnounce();
   const dayRef = useRef<HTMLDivElement>(null);
   // Mientras se arrastra, la nueva hora se dibuja aquí y se guarda solo al soltar.
@@ -34,7 +41,7 @@ export function DayView({ blocks, nowMin, actions, lanes, blockEls, taskCard, pr
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     const el = (e.target as Element).closest<HTMLElement>('.block');
-    if (!el || e.button !== 0) return;
+    if (!el || e.button !== 0 || past) return;
     const b = blocks.find((x) => x.id === el.dataset.id);
     if (!b) return;
     const ls = lanes.current ?? [];
@@ -73,8 +80,7 @@ export function DayView({ blocks, nowMin, actions, lanes, blockEls, taskCard, pr
       setDraft(null);
       onDropState('');
       if (toList && ev.type === 'pointerup') {
-        actions.toTask(b.id);
-        announce(`«${b.title}» pasó a la lista de tareas.`);
+        onToList(b);
       } else if (moved) {
         actions.moveBlock(b.id, cur.start, cur.end);
         announce(`${b.title}: ${fmt(cur.start)} a ${fmt(cur.end)}`);
@@ -92,6 +98,7 @@ export function DayView({ blocks, nowMin, actions, lanes, blockEls, taskCard, pr
   const onKeyDown = (e: KeyboardEvent, b: Block) => {
     if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
     e.preventDefault();
+    if (past) { announce('Ese día ya pasó.'); return; }
     const d = e.key === 'ArrowUp' ? -STEP : STEP;
     let { start, end } = b;
     if (e.shiftKey) {
@@ -124,9 +131,9 @@ export function DayView({ blocks, nowMin, actions, lanes, blockEls, taskCard, pr
                       <li key={b.id}>
                         <button type="button" data-id={b.id} aria-describedby="day-hint"
                           ref={(el) => { if (el) blockEls.current?.set(b.id, el); else blockEls.current?.delete(b.id); }}
-                          className={`block${crosses ? ' continues' : ''}${b.end <= nowMin ? ' past' : ''}${dragId === b.id ? ' dragging' : ''}`}
+                          className={`block${crosses ? ' continues' : ''}${isPast(b) ? ' past' : ''}${dragId === b.id ? ' dragging' : ''}`}
                           style={position(i, b.start, Math.min(b.end, h.end))}
-                          onClick={(e) => { if (e.detail === 0) openBlock(b); }}
+                          onClick={(e) => { if (e.detail === 0 || past) openBlock(b); }}
                           onKeyDown={(e) => onKeyDown(e, b)}>
                           {/* Los espacios entre las partes hacen que el nombre se lea separado ("Diseño, 9:00 – 11:00"). */}
                           <span className="b-title">{b.title}</span>{' '}
@@ -143,12 +150,12 @@ export function DayView({ blocks, nowMin, actions, lanes, blockEls, taskCard, pr
                 </ul>
                 {i === 1 && shown.filter((b) => b.start < SPLIT && b.end > SPLIT).map((b) => (
                   <div key={b.id} data-id={b.id} aria-hidden="true"
-                    className={`block cont${b.end <= nowMin ? ' past' : ''}${dragId === b.id ? ' dragging' : ''}`}
+                    className={`block cont${isPast(b) ? ' past' : ''}${dragId === b.id ? ' dragging' : ''}`}
                     style={position(1, SPLIT, b.end)}>
                     <span className="b-title">{b.title}</span><span className="b-time">continúa</span><span className="handle" />
                   </div>
                 ))}
-                {nowMin >= h.start && nowMin < h.end && (
+                {when === 'today' && nowMin >= h.start && nowMin < h.end && (
                   <div className="now-line" aria-hidden="true" style={{ top: `${((nowMin - h.start) / (h.end - h.start)) * 100}%` }} />
                 )}
                 {previewStart !== null && halfOf(previewStart) === i && (

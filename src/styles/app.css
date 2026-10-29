@@ -219,7 +219,7 @@ main {
 .hint { font-size: .8125rem; color: var(--muted); }
 .day {
   /* Alto de una hora: se ajusta a la pantalla para que el día quepa sin desplazarse. */
-  --hour: clamp(3.75rem, calc((100vh - 15rem) / 7), 6rem);
+  --hour: clamp(3.75rem, calc((100vh - 19.5rem) / 7), 6rem);
   display: grid; gap: 1.25rem;
 }
 @media (min-width: 40em) {
@@ -332,6 +332,14 @@ main {
 .period-nav { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; margin-bottom: .75rem; }
 .period-nav .icon-btn { font-size: 1.5rem; line-height: 1; }
 .period { flex: 0 1 12rem; min-width: 0; font-weight: 600; text-align: center; overflow-wrap: anywhere; }
+
+/* Vista diaria de otro día: la barra para cambiar de día y lo que no tiene hora. */
+.day-nav { margin-bottom: 0; }
+.day-nav .period { flex-basis: 18rem; }
+.untimed { display: flex; flex-wrap: wrap; align-items: baseline; gap: .4rem .75rem; }
+.untimed h3 { font-size: .875rem; color: var(--muted); }
+.untimed ul { display: flex; flex-wrap: wrap; gap: .4rem; }
+.untimed .witem { width: auto; flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: .5rem; }
 
 /* Vista semanal */
 .week-grid { display: grid; gap: .5rem; }

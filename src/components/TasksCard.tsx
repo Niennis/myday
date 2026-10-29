@@ -1,4 +1,5 @@
-// "Lo que importa hoy": las tareas sin hora. Se pasan al horario con el botón o arrastrándolas.
+// "Lo que importa hoy": las tareas sin hora. Se pasan al horario que se está viendo (hoy u otro día)
+// con el botón o arrastrándolas.
 import { useRef, useState, type PointerEvent as ReactPointerEvent, type Ref, type RefObject } from 'react';
 import { fmt } from '../lib/dates.ts';
 import { clamp, DAY_END, DAY_START, DEFAULT_LEN, isOver, snap, timeAt } from '../lib/schedule.ts';
@@ -14,8 +15,14 @@ const CHEERS = ['Bien hecho.', 'Una menos.', 'Buen avance.', 'Así se hace.'];
 interface Props {
   tasks: Item[];
   actions: DayActions;
-  /** Hora del primer espacio libre en el horario. */
+  /** Hora del primer espacio libre en el horario que se está viendo. */
   freeSlot: () => number;
+  /** Pasa una tarea al horario que se está viendo. */
+  toBlock: (id: string, start: number) => void;
+  /** " de mañana", " del lunes 2 de noviembre" o "" (hoy), para los mensajes. */
+  where: string;
+  /** Si se puede soltar en el horario (no en un día que ya pasó). */
+  canDrop: boolean;
   lanes: RefObject<HTMLElement[]>;
   /** Muestra en el horario dónde quedará lo que se arrastra (null: fuera del horario). */
   onPreview: (p: { title: string; start: number | null } | null) => void;
@@ -29,7 +36,7 @@ interface Props {
   foldRef: Ref<HTMLButtonElement>;
 }
 
-export function TasksCard({ tasks, actions, freeSlot, lanes, onPreview, focusBlock, onDelete, folded, onFold, dropClass, cardRef, foldRef }: Props) {
+export function TasksCard({ tasks, actions, freeSlot, toBlock, where, canDrop, lanes, onPreview, focusBlock, onDelete, folded, onFold, dropClass, cardRef, foldRef }: Props) {
   const [cheer, setCheer] = useState('');
   const left = tasks.filter((t) => !t.done).length;
   return (
@@ -41,11 +48,12 @@ export function TasksCard({ tasks, actions, freeSlot, lanes, onPreview, focusBlo
       {tasks.length === 0 && <p className="muted empty">Nada por ahora. Lo que anotes sin hora aparece aquí.</p>}
       <ul className="tasks">
         {tasks.map((t) => (
-          <TaskRow key={t.id} task={t} actions={actions} lanes={lanes} onPreview={onPreview}
+          <TaskRow key={t.id} task={t} actions={actions} lanes={lanes} onPreview={onPreview} where={where} canDrop={canDrop}
+            toBlock={(start) => toBlock(t.id, start)}
             onDone={(done) => setCheer(done ? CHEERS[Math.floor(Math.random() * CHEERS.length)] : '')}
             toSchedule={() => {
               const start = freeSlot();
-              actions.toBlock(t.id, start);
+              toBlock(t.id, start);
               return start;
             }}
             focusBlock={focusBlock} onDelete={() => onDelete(t.id)} />
@@ -61,13 +69,16 @@ interface RowProps {
   actions: DayActions;
   lanes: RefObject<HTMLElement[]>;
   onPreview: Props['onPreview'];
+  where: string;
+  canDrop: boolean;
+  toBlock: (start: number) => void;
   onDone: (done: boolean) => void;
   toSchedule: () => number;
   focusBlock: (id: string) => void;
   onDelete: () => void;
 }
 
-function TaskRow({ task: t, actions, lanes, onPreview, onDone, toSchedule, focusBlock, onDelete }: RowProps) {
+function TaskRow({ task: t, actions, lanes, onPreview, where, canDrop, toBlock, onDone, toSchedule, focusBlock, onDelete }: RowProps) {
   const announce = useAnnounce();
   const [open, setOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -103,7 +114,7 @@ function TaskRow({ task: t, actions, lanes, onPreview, onDone, toSchedule, focus
       ghost.style.left = `${ev.clientX + 14}px`;
       ghost.style.top = `${ev.clientY + 10}px`;
       const ls = lanes.current ?? [];
-      dropStart = ls.some((l) => isOver(l, ev.clientX, ev.clientY))
+      dropStart = canDrop && ls.some((l) => isOver(l, ev.clientX, ev.clientY))
         ? clamp(snap(timeAt(ls, ev.clientX, ev.clientY)), DAY_START, DAY_END - DEFAULT_LEN)
         : null;
       onPreview({ title: t.title, start: dropStart });
@@ -119,8 +130,8 @@ function TaskRow({ task: t, actions, lanes, onPreview, onDone, toSchedule, focus
       setDragging(false);
       onPreview(null);
       if (dropStart !== null && ev.type === 'pointerup') {
-        actions.toBlock(t.id, dropStart);
-        announce(`«${t.title}» quedó en el horario a las ${fmt(dropStart)}.`);
+        toBlock(dropStart);
+        announce(`«${t.title}» quedó en el horario${where} a las ${fmt(dropStart)}.`);
       }
     };
     window.addEventListener('pointermove', onMove);
@@ -138,11 +149,11 @@ function TaskRow({ task: t, actions, lanes, onPreview, onDone, toSchedule, focus
         </label>
         {t.tone && <span className="t-tone"><ToneTag tone={t.tone} /></span>}
         {t.alert && <span className="bell"><span aria-hidden="true">🔔</span><span className="sr-only">Con aviso</span></span>}
-        <IconButton className="to-cal" tip="Poner en el horario (o arrastra la tarea)" label={`Poner «${t.title}» en el horario`}
+        <IconButton className="to-cal" tip={`Poner en el horario${where} (o arrastra la tarea)`} label={`Poner «${t.title}» en el horario${where}`}
           onClick={() => {
             const start = toSchedule();
             requestAnimationFrame(() => focusBlock(t.id));
-            announce(`«${t.title}» quedó en el horario a las ${fmt(start)}. Puedes moverla con las flechas.`);
+            announce(`«${t.title}» quedó en el horario${where} a las ${fmt(start)}. Puedes moverla con las flechas.`);
           }}>
           <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><rect x="3" y="4.5" width="14" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" /><path d="M3 8.5h14M7 2.75v3.5M13 2.75v3.5M10 10.5v4M8 12.5h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
         </IconButton>

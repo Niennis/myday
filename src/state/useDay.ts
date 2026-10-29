@@ -84,10 +84,11 @@ export function useDay(repo: Repo | null, today: Day, range: Range | null) {
     /** Deshacer un borrado: vuelve tal como estaba. */
     restore: (item: Item) => insert({ ...item, deletedAt: null, updatedAt: new Date().toISOString() }),
     moveBlock: (id: string, start: number, end: number) => update(id, { start, end }),
-    /** De la lista al horario; los pasos y la marca viajan con ella. */
-    toBlock: (id: string, start: number) => update(id, { start, end: Math.min(start + DEFAULT_LEN, DAY_END), done: false }),
-    /** Del horario a la lista (al final). */
-    toTask: (id: string) => update(id, { start: null, end: null, sort: Date.now() }),
+    /** De la lista al horario de `day` (hoy si no se indica); los pasos y la marca viajan con ella. */
+    toBlock: (id: string, start: number, day: Day = today) =>
+      update(id, { start, end: Math.min(start + DEFAULT_LEN, DAY_END), date: day, done: false }),
+    /** Del horario a la lista de tareas (al final), de su mismo día o de `day`. */
+    toTask: (id: string, day?: Day) => update(id, { start: null, end: null, sort: Date.now(), ...(day ? { date: day } : {}) }),
 
     /** A otro día. Si llega a hoy con hora, queda dentro del horario; sin hora, como tarea. */
     moveToDate(id: string, day: Day) {
