@@ -1,0 +1,103 @@
+/*
+ * ============================================================
+ *  COLORES DE MI DÍA
+ * ============================================================
+ *
+ *  Cada bloque de abajo es un mood (se elige desde el ícono de
+ *  Mi día en la bandeja, junto al reloj). Las marcas usan
+ *  estos mismos moods: Hoy sin falta = fucsia, Rrrrápido =
+ *  energía, Con tiempo = concentración, Con calma = calma.
+ *  Para cambiar un color:
+ *
+ *    1. Busca el mood y la línea del color (por ejemplo --bg).
+ *    2. Cambia el código #xxxxxx por otro. Puedes elegirlo en
+ *       https://htmlcolorcodes.com/es/ o con el selector de
+ *       colores de VS Code (pasa el mouse sobre el código).
+ *    3. Guarda el archivo. Con la app en modo desarrollo
+ *       (pnpm tauri dev) el cambio se ve al instante; para la
+ *       app instalada hay que volver a generar el instalador.
+ *
+ *  Qué es cada color:
+ *    --bg          Fondo de la página.
+ *    --surface     Fondo de las tarjetas.
+ *    --soft        Fondo de la tarjeta destacada ("Ahora").
+ *    --ink         Texto principal.
+ *    --muted       Texto secundario (horas, ayudas).
+ *    --line        Líneas divisorias y bordes.
+ *    --accent      Botones principales, íconos y casillas marcadas.
+ *    --on-accent   Texto sobre los botones principales.
+ *    --block       Fondo de los bloques del horario.
+ *    --block-edge  Borde izquierdo de los bloques.
+ *    --now         Línea de "ahora" en el horario.
+ *    --focus       Contorno al navegar con el teclado (Tab).
+ *
+ *  Para que todo se lea bien: el texto (--ink y --muted) debe
+ *  contrastar con los fondos (--bg, --surface, --soft y --block).
+ *  Si dudas, pídeme que revise el contraste.
+ * ============================================================
+ */
+
+/* ---------- Calma: verde azulado, suave ---------- */
+:root,
+[data-mood="calma"] {
+  --bg:         #111918;
+  --surface:    #19221f;
+  --soft:       #213230;
+  --ink:        #dce5e2;
+  --muted:      #9db0aa;
+  --line:       #2b3a37;
+  --accent:     #7cc7b4;
+  --on-accent:  #0f1716;
+  --block:      #1f2f2c;
+  --block-edge: #6bb8a5;
+  --now:        #8fd6c4;
+  --focus:      #b0e8da;
+}
+
+/* ---------- Energía: ámbar cálido ---------- */
+[data-mood="energia"] {
+  --bg:         #1b1511;
+  --surface:    #241c16;
+  --soft:       #33271d;
+  --ink:        #ece2d8;
+  --muted:      #bba795;
+  --line:       #3a2e24;
+  --accent:     #f0a868;
+  --on-accent:  #1b1511;
+  --block:      #2e231a;
+  --block-edge: #e0954f;
+  --now:        #f5b77d;
+  --focus:      #ffd5ad;
+}
+
+/* ---------- Concentración: índigo ---------- */
+[data-mood="concentracion"] {
+  --bg:         #12141d;
+  --surface:    #1a1d29;
+  --soft:       #252a3d;
+  --ink:        #e0e3ee;
+  --muted:      #a5abc0;
+  --line:       #2e3346;
+  --accent:     #9aa8f5;
+  --on-accent:  #12141d;
+  --block:      #212640;
+  --block-edge: #8392ea;
+  --now:        #aab6ff;
+  --focus:      #c9d0ff;
+}
+
+/* ---------- Fucsia: intenso pero oscuro (es el de "Hoy sin falta") ---------- */
+[data-mood="fucsia"] {
+  --bg:         #1a1118;
+  --surface:    #231720;
+  --soft:       #33202e;
+  --ink:        #f0e0ea;
+  --muted:      #c4a5b8;
+  --line:       #3e2a38;
+  --accent:     #f27ac9;
+  --on-accent:  #1a1118;
+  --block:      #2f1d2a;
+  --block-edge: #e266b6;
+  --now:        #f79bd8;
+  --focus:      #fcc0e6;
+}

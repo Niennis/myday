@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Ícono de Mi día: un reloj en los colores del mood Calma. -->
+  <rect x="32" y="32" width="960" height="960" rx="220" fill="#19221f"/>
+  <circle cx="512" cy="512" r="320" fill="none" stroke="#7cc7b4" stroke-width="72"/>
+  <path d="M512 300V512l150 100" fill="none" stroke="#7cc7b4" stroke-width="72" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
