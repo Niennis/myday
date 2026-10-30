@@ -52,7 +52,7 @@ export function CaptureDialog({ open, now, actions, onClose }: Props) {
     if (!p.title) { inputRef.current?.focus(); return; }
     const forToday = !date || isoDate(date) === isoDate(today);
     const item = actions.add(p, date);
-    // Se anuncia la hora con que quedó (dentro del horario de 7:00 a 21:00).
+    // Se anuncia la hora con que quedó (dentro del horario de la app).
     const when = item.start !== null && item.end !== null ? ` de ${fmt(item.start)} a ${fmt(item.end)}` : '';
     if (forToday && when) announce(`Agregado a hoy${when}: ${p.title}.`);
     else if (forToday) announce(`Anotado en lo de hoy: ${p.title}.`);

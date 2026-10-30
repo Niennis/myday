@@ -225,7 +225,8 @@ main {
 @media (min-width: 40em) {
   .day { grid-template-columns: 1fr 1fr; }
 }
-.half h3 { font-size: .875rem; color: var(--muted); font-weight: 600; margin: 0 0 .6rem 3.25rem; }
+/* La primera hora (9:00) sube un poco: deja espacio arriba para que no se corte. */
+.half-grid { padding-top: .6rem; }
 .half-grid { display: grid; grid-template-columns: 3.25rem 1fr; }
 .hours li {
   height: var(--hour); font-size: .8125rem; color: var(--muted);

@@ -1,7 +1,7 @@
-// Vista diaria en dos columnas (mañana y tarde). Los bloques se arrastran, se estiran desde el borde
-// inferior y se mueven con el teclado. Un bloque que cruza las 14:00 sigue en la columna de la tarde.
+// Vista diaria en dos columnas (ver HALVES en lib/schedule.ts). Los bloques se arrastran, se estiran desde
+// el borde inferior y se mueven con el teclado. Un bloque que cruza de una columna a otra sigue en la segunda.
 // Muestra hoy u otro día; los días pasados se pueden ver y abrir, pero sus bloques no se mueven.
-import { useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
+import { useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import { fmt } from '../lib/dates.ts';
 import { clamp, DAY_END, DAY_START, DEFAULT_LEN, HALVES, halfOf, isOver, position, snap, SPLIT, STEP, timeAt } from '../lib/schedule.ts';
 import type { Item } from '../data/types.ts';
@@ -38,6 +38,25 @@ export function DayView({ blocks, when, nowMin, actions, lanes, blockEls, taskCa
   const [dragId, setDragId] = useState<string | null>(null);
 
   const shown = blocks.map((b) => (draft?.id === b.id ? { ...b, start: draft.start, end: draft.end } : b));
+
+  // Con títulos largos o letra grande, un bloque corto crece más que su espacio y puede pasarse del fondo:
+  // en ese caso, la columna deja espacio abajo para que el fondo lo cubra.
+  useLayoutEffect(() => {
+    const fit = () => {
+      for (const lane of lanes.current ?? []) {
+        if (!lane?.isConnected) continue;
+        let bottom = lane.clientHeight;
+        lane.querySelectorAll<HTMLElement>('.block').forEach((b) => { bottom = Math.max(bottom, b.offsetTop + b.offsetHeight); });
+        const extra = bottom - lane.clientHeight;
+        lane.style.marginBottom = extra > 0 ? `${extra + 8}px` : '';
+      }
+    };
+    fit();
+    // También cuando cambia el tamaño de la ventana o de la letra.
+    const ro = new ResizeObserver(fit);
+    (lanes.current ?? []).forEach((l) => l && ro.observe(l));
+    return () => ro.disconnect();
+  });
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     const el = (e.target as Element).closest<HTMLElement>('.block');
@@ -119,8 +138,9 @@ export function DayView({ blocks, when, nowMin, actions, lanes, blockEls, taskCa
         const hours = [];
         for (let m = h.start; m < h.end; m += 60) hours.push(<li key={m}>{fmt(m)}</li>);
         return (
-          <div className="half" key={h.name}>
-            <h3 id={`half-${i}`}>{h.name}</h3>
+          <div className="half" key={h.start}>
+            {/* Sin título visible: las horas ya dicen de qué parte del día es. */}
+            <h3 id={`half-${i}`} className="sr-only">De {fmt(h.start)} a {fmt(h.end)}</h3>
             <div className="half-grid">
               <ul className="hours" aria-hidden="true">{hours}</ul>
               <div className="lane" ref={(el) => { if (lanes.current && el) lanes.current[i] = el; }}>

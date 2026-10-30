@@ -1,9 +1,10 @@
-// El horario del día: dos columnas, mañana (7:00–14:00) y tarde (14:00–21:00), en pasos de 15 minutos.
+// El horario del día: dos columnas, de 9:00 a 16:00 y de 16:00 a 23:00, en pasos de 15 minutos.
+// Para cambiar el horario, basta con cambiar estas horas (las dos columnas deben durar lo mismo).
 
 export const STEP = 15;
 export const HALVES = [
-  { name: 'Mañana', start: 7 * 60, end: 14 * 60 },
-  { name: 'Tarde', start: 14 * 60, end: 21 * 60 },
+  { start: 9 * 60, end: 16 * 60 },
+  { start: 16 * 60, end: 23 * 60 },
 ] as const;
 export const DAY_START = HALVES[0].start;
 export const DAY_END = HALVES[1].end;
@@ -18,6 +19,9 @@ export const halfOf = (m: number) => (m < SPLIT ? 0 : 1);
 export function position(half: number, s: number, e: number) {
   const h = HALVES[half];
   const span = h.end - h.start;
+  // Algo anotado fuera del horario (por ejemplo, a las 7:00) se dibuja en el borde, no fuera de la columna.
+  s = clamp(s, h.start, h.end - STEP);
+  e = clamp(e, s + STEP, h.end);
   return { top: `${((s - h.start) / span) * 100}%`, height: `calc(${((e - s) / span) * 100}% - 3px)` };
 }
 

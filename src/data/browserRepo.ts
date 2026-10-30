@@ -19,13 +19,14 @@ function sample(today: Day): Item[] {
   const step = (title: string, done = false) => ({ id: crypto.randomUUID(), title, done });
   const h = (hh: number, mm = 0) => hh * 60 + mm;
   return [
-    newItem({ title: 'Correo y planificar', date: today, start: h(8, 30), end: h(9), tone: 'rapido' }),
-    newItem({ title: 'Diseño', date: today, start: h(9), end: h(11), tone: 'tiempo',
+    newItem({ title: 'Correo y planificar', date: today, start: h(9), end: h(9, 30), tone: 'rapido' }),
+    newItem({ title: 'Diseño', date: today, start: h(9, 30), end: h(11, 30), tone: 'tiempo',
       steps: [step('Revisar comentarios', true), step('Ajustar la pantalla Hoy'), step('Exportar imágenes')] }),
-    newItem({ title: 'Revisar presupuesto', date: today, start: h(11, 30), end: h(12, 30), tone: 'urgente' }),
-    newItem({ title: 'Almuerzo', date: today, start: h(13), end: h(14) }),
-    newItem({ title: 'Llamada de equipo', date: today, start: h(15), end: h(15, 30) }),
-    newItem({ title: 'Caminar', date: today, start: h(18), end: h(19), tone: 'calma' }),
+    newItem({ title: 'Revisar presupuesto', date: today, start: h(12), end: h(13), tone: 'urgente' }),
+    newItem({ title: 'Almuerzo', date: today, start: h(13, 30), end: h(14, 30) }),
+    newItem({ title: 'Llamada de equipo', date: today, start: h(16), end: h(16, 30) }),
+    newItem({ title: 'Caminar', date: today, start: h(19), end: h(20), tone: 'calma' }),
+    newItem({ title: 'Leer antes de dormir', date: today, start: h(22), end: h(22, 30) }),
     newItem({ title: 'Enviar la factura de octubre', date: today, alert: true, tone: 'urgente', sort: 1 }),
     newItem({ title: 'Preparar la presentación', date: today, sort: 2,
       steps: [step('Esquema', true), step('Diapositivas'), step('Ensayar una vez')] }),
