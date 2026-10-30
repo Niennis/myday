@@ -51,14 +51,17 @@ export function CaptureDialog({ open, now, actions, onClose }: Props) {
   const save = () => {
     if (!p.title) { inputRef.current?.focus(); return; }
     const forToday = !date || isoDate(date) === isoDate(today);
-    actions.add(p, date);
-    if (forToday && p.time !== null) announce(`Agregado a hoy a las ${fmt(p.time)}: ${p.title}.`);
+    const item = actions.add(p, date);
+    // Se anuncia la hora con que quedó (dentro del horario de 7:00 a 21:00).
+    const when = item.start !== null && item.end !== null ? ` de ${fmt(item.start)} a ${fmt(item.end)}` : '';
+    if (forToday && when) announce(`Agregado a hoy${when}: ${p.title}.`);
     else if (forToday) announce(`Anotado en lo de hoy: ${p.title}.`);
-    else announce(`Anotado para ${dateLabel(date!, today, true)}${p.time !== null ? ` a las ${fmt(p.time)}` : ''}: ${p.title}.`);
+    else announce(`Anotado para ${dateLabel(date!, today, true)}${when}: ${p.title}.`);
     onClose();
   };
 
-  const rest = [p.time !== null ? fmt(p.time) : '', p.alert ? 'con aviso' : ''].filter(Boolean);
+  const time = p.time === null ? '' : p.end !== null ? `${fmt(p.time)} – ${fmt(p.end)}` : fmt(p.time);
+  const rest = [time, p.alert ? 'con aviso' : ''].filter(Boolean);
 
   return (
     <dialog ref={ref} aria-labelledby="capture-title">

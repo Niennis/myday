@@ -12,7 +12,7 @@ const p = (text: string) => {
 
 test('fecha y hora con día de la semana', () => {
   assert.deepEqual(p('llamar al dentista el viernes 10:00'),
-    { title: 'Llamar al dentista', date: '2026-10-30', time: 600, alert: false, tone: null });
+    { title: 'Llamar al dentista', date: '2026-10-30', time: 600, end: null, alert: false, tone: null });
 });
 
 test('palabras de fecha', () => {
@@ -49,4 +49,24 @@ test('aviso y marcas', () => {
   assert.equal(p('leer con tiempo').tone, 'tiempo');
   assert.equal(p('ordenar papeles con calma').tone, 'calma');
   assert.equal(p('enviar factura hoy sin falta').date, '2026-10-29');
+});
+
+test('rangos de hora: la segunda hora es el fin', () => {
+  const r = (text: string) => { const x = p(text); return [x.title, x.time, x.end]; };
+  assert.deepEqual(r('almuerzo de 13:00 a 14:00'), ['Almuerzo', 13 * 60, 14 * 60]);
+  assert.deepEqual(r('dev de 16:00 a 19:00'), ['Dev', 16 * 60, 19 * 60]);
+  assert.deepEqual(r('16:00 a 19:00 dev'), ['Dev', 16 * 60, 19 * 60]);
+  assert.deepEqual(r('reunión 10:00 - 11:30'), ['Reunión', 10 * 60, 11 * 60 + 30]);
+  assert.deepEqual(r('reunión 10:00-11:30'), ['Reunión', 10 * 60, 11 * 60 + 30]);
+  assert.deepEqual(r('tejido de 4 a 6 de la tarde'), ['Tejido', 16 * 60, 18 * 60]);
+  assert.deepEqual(r('estudiar desde las 9 hasta las 11'), ['Estudiar', 9 * 60, 11 * 60]);
+  assert.deepEqual(r('clase de 16 a 19'), ['Clase', 16 * 60, 19 * 60]);
+  assert.deepEqual(r('taller de 11 a 1'), ['Taller', 11 * 60, 13 * 60]); // la 1 después de las 11 es de la tarde
+  assert.equal(p('cine mañana de 20:00 a 22:00').date, '2026-10-30');
+});
+
+test('sin rango: una sola hora, sin fin', () => {
+  assert.equal(p('dentista a las 10').end, null);
+  assert.equal(p('comprar 2 manzanas').time, null);
+  assert.equal(p('leer de 2 a 3 capítulos').time, null);
 });

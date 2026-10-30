@@ -51,8 +51,12 @@ export function nextFreeSlot(blocks: { start: number; end: number }[], nowMin: n
   return DAY_END - len;
 }
 
-/** Un bloque nuevo a partir de una hora escrita: dentro del horario y de 30 minutos. */
-export const blockAt = (time: number) => {
-  const start = clamp(snap(time), DAY_START, DAY_END - DEFAULT_LEN);
-  return { start, end: start + DEFAULT_LEN };
+/** Un bloque nuevo a partir de una hora escrita: dentro del horario; hasta `end` si se escribió un rango, si no, de 30 minutos. */
+export const blockAt = (time: number, end: number | null = null) => {
+  if (end === null) {
+    const start = clamp(snap(time), DAY_START, DAY_END - DEFAULT_LEN);
+    return { start, end: start + DEFAULT_LEN };
+  }
+  const start = clamp(snap(time), DAY_START, DAY_END - STEP);
+  return { start, end: clamp(snap(end), start + STEP, DAY_END) };
 };

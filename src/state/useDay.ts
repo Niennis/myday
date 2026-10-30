@@ -106,7 +106,7 @@ export function useDay(repo: Repo | null, today: Day, range: Range | null) {
     /** Lo escrito en la captura: con hora y para hoy → bloque; sin hora → tarea; otro día → queda en ese día. */
     add(p: Parsed, date: Date | null): Item {
       const day = date ? isoDate(date) : today;
-      const slot = p.time !== null ? (day === today ? blockAt(p.time) : { start: p.time, end: p.time + DEFAULT_LEN }) : null;
+      const slot = p.time !== null ? blockAt(p.time, p.end) : null;
       const item = newItem({ title: p.title, date: day, alert: p.alert, tone: p.tone, start: slot?.start ?? null, end: slot?.end ?? null });
       insert(item);
       return item;

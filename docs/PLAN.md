@@ -25,7 +25,7 @@ Lo uso principalmente en el computador. **El teléfono queda fuera por ahora** (
 
 ### 2. Pocas opciones, y escondidas
 - Una sola forma de crear: **atajo de teclado global** (`Ctrl+Alt+Espacio`; `Ctrl+Espacio` lo usan VS Code y otros editores para autocompletar) que abre una caja donde se escribe en lenguaje natural: *"llamar al dentista el viernes 10:00"*.
-  - Entiende fechas y horas escritas con palabras: hoy, mañana, pasado mañana, días de la semana ("el lunes que viene"), "15/10", "15 de octubre", "el 20", "en 3 días", "la próxima semana", "a las 5 de la tarde". Si una fecha ya pasó este año, se entiende la del próximo.
+  - Entiende fechas y horas escritas con palabras: hoy, mañana, pasado mañana, días de la semana ("el lunes que viene"), "15/10", "15 de octubre", "el 20", "en 3 días", "la próxima semana", "a las 5 de la tarde", y rangos: "de 13:00 a 14:00", "10:00 - 11:30", "de 4 a 6 de la tarde" (la segunda hora es el fin del bloque; sin ":" ni "las", "de 16 a 19" solo cuenta si empieza entre las 7 y las 21, para no confundirlo con "leer de 2 a 3 capítulos"). Si una fecha ya pasó este año, se entiende la del próximo.
   - Debajo muestra cómo lo entendió. La fecha es un botón que abre un **calendario** para corregirla o elegirla (respaldo, no otra forma de crear).
   - Con hora y para hoy → bloque en el horario. Sin hora → tarea. Para otro día → queda en ese día (se ve en la vista semanal).
 - Una tarea tiene solo: título, pasos (subtareas marcables), fecha opcional, alerta opcional y **marca opcional**. Sin etiquetas, prioridades, proyectos ni colores por tarea.

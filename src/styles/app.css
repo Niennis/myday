@@ -330,7 +330,12 @@ main {
 .view[hidden] { display: none; }
 
 .period-nav { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; margin-bottom: .75rem; }
-.period-nav .icon-btn { font-size: 1.5rem; line-height: 1; }
+/* Flechas ‹ › para cambiar de día, semana o mes: con borde, para que se vean como botones. */
+.period-nav .icon-btn {
+  font-size: 1.5rem; line-height: 1; color: var(--ink);
+  border: 1.5px solid var(--line); border-radius: 999px; background: var(--surface);
+}
+.period-nav .icon-btn:hover { border-color: var(--accent); background: var(--soft); }
 .period { flex: 0 1 12rem; min-width: 0; font-weight: 600; text-align: center; overflow-wrap: anywhere; }
 
 /* Vista diaria de otro día: la barra para cambiar de día y lo que no tiene hora. */

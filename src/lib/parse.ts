@@ -10,6 +10,8 @@ export interface Parsed {
   date: Date | null;
   /** Minutos desde la medianoche. */
   time: number | null;
+  /** Fin, si se escribió un rango ("de 13:00 a 14:00"). */
+  end: number | null;
   alert: boolean;
   tone: Tone | null;
 }
@@ -34,6 +36,7 @@ export function parse(text: string, now: Date): Parsed {
   let rest = ` ${text} `;
   let date: Date | null = null;
   let time: number | null = null;
+  let end: number | null = null;
   let alert = false;
   let tone: Tone | null = null;
   const take = (re: RegExp) => {
@@ -51,9 +54,33 @@ export function parse(text: string, now: Date): Parsed {
   else if (take(rx('con tiempo'))) tone = 'tiempo';
   else if (take(rx('con calma'))) tone = 'calma';
 
+  // Rango: "de 13:00 a 14:00", "10:00 - 11:30", "desde las 9 hasta las 11", "de 4 a 6 de la tarde".
+  // Sin ":", "las" ni "de la tarde" ("de 16 a 19") solo cuenta si empieza dentro del horario (7 a 21),
+  // para no confundirlo con "leer de 2 a 3 capítulos".
+  const range = rest.match(rx('(?:(de|desde)\\s+)?(?:(las)\\s+)?(\\d{1,2})(?::(\\d{2}))?\\s*(?:a|hasta|-|–)\\s*(?:las\\s+)?(\\d{1,2})(?::(\\d{2}))?(?:\\s+de la\\s+(mañana|tarde|noche))?'));
+  if (range) {
+    const [, from, las, h1, m1, h2, m2, part] = range;
+    const sh = Number(h1);
+    if (m1 || m2 || las || part || (from && sh >= 7 && sh <= 21)) {
+      const pm = part === 'tarde' || part === 'noche';
+      let eh = Number(h2);
+      if (pm && eh < 12) eh += 12;
+      let st = sh * 60 + Number(m1 || 0);
+      let en = eh * 60 + Number(m2 || 0);
+      // "de 4 a 6 de la tarde": el inicio también es de la tarde; "de 11 a 1": la 1 es después de las 11.
+      if (pm && sh < 12 && st + 12 * 60 < en) st += 12 * 60;
+      if (en <= st && eh < 12 && en + 12 * 60 > st) en += 12 * 60;
+      if (st < en && en <= 24 * 60 && Number(m1 || 0) < 60 && Number(m2 || 0) < 60) {
+        rest = rest.replace(range[0], ' ');
+        time = st;
+        end = en;
+      }
+    }
+  }
+
   // Hora: "10:00", "a las 10", "a las 5 de la tarde"
-  if ((m = take(rx('(?:a las\\s+)?(\\d{1,2}):(\\d{2})(?:\\s+de la (mañana|tarde|noche))?')))
-    || (m = take(rx('a las\\s+(\\d{1,2})()(?:\\s+de la (mañana|tarde|noche))?')))) {
+  if (time === null && ((m = take(rx('(?:a las\\s+)?(\\d{1,2}):(\\d{2})(?:\\s+de la (mañana|tarde|noche))?')))
+    || (m = take(rx('a las\\s+(\\d{1,2})()(?:\\s+de la (mañana|tarde|noche))?'))))) {
     let h = Number(m[1]);
     const min = Number(m[2] || 0);
     if ((m[3] === 'tarde' || m[3] === 'noche') && h < 12) h += 12;
@@ -92,5 +119,5 @@ export function parse(text: string, now: Date): Parsed {
   let title = rest.replace(/\s+/g, ' ').trim();
   title = title.charAt(0).toUpperCase() + title.slice(1);
   if (time !== null && !date) date = today;
-  return { title, date, time, alert, tone };
+  return { title, date, time, end, alert, tone };
 }
