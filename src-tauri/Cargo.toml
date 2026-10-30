@@ -1,6 +1,6 @@
 [package]
 name = "mi-dia"
-version = "0.1.0"
+version = "0.2.0"
 description = "Mi día: organizador personal"
 authors = ["Estefania"]
 license = "MIT"

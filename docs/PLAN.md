@@ -96,7 +96,7 @@ Compartir con otra persona: Tauri genera un instalador `.msi`/`.exe`. Sin firma 
 ## Siguiente paso acordado
 
 1. ~~Usar el prototipo~~ (hecho; está en `prototipo/`).
-2. **Etapa 1 en Tauri** (29 de octubre): compilada y probada como app de escritorio. Se agregaron las vistas semanal y mensual y los tiempos editables del pomodoro. Primer instalador generado (versión 0.1.0, `pnpm tauri build`): `src-tauri/target/release/bundle/nsis/`. Para cada versión nueva: subir el número en `package.json`, `src-tauri/Cargo.toml` y `src-tauri/tauri.conf.json`, generar el instalador e instalarlo encima (los datos se conservan).
+2. **Etapa 1 en Tauri** (29 de octubre): compilada y probada como app de escritorio. Se agregaron las vistas semanal y mensual y los tiempos editables del pomodoro. Instaladores generados: 0.1.0 y 0.2.0 (navegación entre días), con `pnpm tauri build`,: `src-tauri/target/release/bundle/nsis/`. Para cada versión nueva: subir el número en `package.json`, `src-tauri/Cargo.toml` y `src-tauri/tauri.conf.json`, generar el instalador e instalarlo encima (los datos se conservan).
 3. Usar la app unos días y anotar qué sobra, qué confunde y qué falta. Luego, la etapa 2.
 
 Repositorio público: https://github.com/Niennis/myday (licencia MIT). Los instaladores se publican en Releases.
