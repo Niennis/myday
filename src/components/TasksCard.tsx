@@ -2,7 +2,7 @@
 // con el botón o arrastrándolas.
 import { useRef, useState, type PointerEvent as ReactPointerEvent, type Ref, type RefObject } from 'react';
 import { fmt } from '../lib/dates.ts';
-import { clamp, DAY_END, DAY_START, DEFAULT_LEN, isOver, snap, timeAt } from '../lib/schedule.ts';
+import { clamp, DAY_END, DAY_START, DEFAULT_LEN, edgeScroller, isOver, snap, timeAt } from '../lib/schedule.ts';
 import type { Item } from '../data/types.ts';
 import type { DayActions } from '../state/useDay.ts';
 import { useAnnounce } from './Announcer.tsx';
@@ -100,8 +100,12 @@ function TaskRow({ task: t, actions, lanes, onPreview, where, canDrop, toBlock, 
     const y0 = e.clientY;
     let ghost: HTMLDivElement | null = null;
     let dropStart: number | null = null;
+    // Cerca del borde del horario, se desplaza solo (y la vista previa sigue al puntero).
+    let last: PointerEvent | null = null;
+    const scroller = edgeScroller(lanes.current?.[0]?.closest<HTMLElement>('.day-scroll') ?? null, () => { if (last) onMove(last); });
     // Se escucha en window (sin capturar el puntero) para que un clic normal siga marcando la casilla.
     const onMove = (ev: PointerEvent) => {
+      last = ev;
       if (!ghost) {
         if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
         ghost = document.createElement('div');
@@ -118,8 +122,10 @@ function TaskRow({ task: t, actions, lanes, onPreview, where, canDrop, toBlock, 
         ? clamp(snap(timeAt(ls, ev.clientX, ev.clientY)), DAY_START, DAY_END - DEFAULT_LEN)
         : null;
       onPreview({ title: t.title, start: dropStart });
+      if (canDrop) scroller.update(ev.clientY);
     };
     const onUp = (ev: PointerEvent) => {
+      scroller.stop();
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);

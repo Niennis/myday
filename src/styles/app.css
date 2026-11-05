@@ -215,17 +215,21 @@ main {
 .add-sub:focus-visible { outline-offset: 0; border-style: solid; border-color: var(--accent); }
 .cheer { font-size: .875rem; color: var(--muted); margin-top: .25rem; min-height: 1.3em; }
 
-/* ---------- Vista diaria en dos columnas: mañana y tarde ---------- */
+/* ---------- Vista diaria: el día completo en dos columnas (0–12 y 12–24) con un solo scroll ---------- */
 .hint { font-size: .8125rem; color: var(--muted); }
 .day {
-  /* Alto de una hora: se ajusta a la pantalla para que el día quepa sin desplazarse. */
-  --hour: clamp(3.75rem, calc((100vh - 19.5rem) / 7), 6rem);
-  display: grid; gap: 1.25rem;
+  /* Alto de una hora: se ajusta a la pantalla para que se vean unas 6 horas por columna. */
+  --hour: clamp(3.75rem, calc((100vh - 19.5rem) / 6), 6rem);
 }
+.day-scroll {
+  max-height: calc(var(--hour) * 6 + .6rem); overflow-y: auto; overscroll-behavior: contain;
+  border-radius: 8px;
+}
+.day-cols { display: grid; gap: 1.25rem; }
 @media (min-width: 40em) {
-  .day { grid-template-columns: 1fr 1fr; }
+  .day-cols { grid-template-columns: 1fr 1fr; }
 }
-/* La primera hora (9:00) sube un poco: deja espacio arriba para que no se corte. */
+/* La primera hora (0:00) sube un poco: deja espacio arriba para que no se corte. */
 .half-grid { padding-top: .6rem; }
 .half-grid { display: grid; grid-template-columns: 3.25rem 1fr; }
 .hours li {
@@ -233,7 +237,7 @@ main {
   transform: translateY(-.6em); text-align: right; padding-right: .6rem;
 }
 .lane {
-  position: relative; height: calc(var(--hour) * 7);
+  position: relative; height: calc(var(--hour) * 12);
   border-left: 1px solid var(--line); border-bottom: 1px solid var(--line);
   background-image: repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px var(--hour));
 }

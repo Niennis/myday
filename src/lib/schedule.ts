@@ -1,11 +1,14 @@
-// El horario del día: dos columnas, de 9:00 a 16:00 y de 16:00 a 23:00, en pasos de 15 minutos.
-// Para cambiar el horario, basta con cambiar estas horas (las dos columnas deben durar lo mismo).
+// El horario del día: el día completo en dos columnas, de 0:00 a 12:00 y de 12:00 a 24:00, en pasos de 15 minutos.
+// Se ven unas horas a la vez y el resto se alcanza desplazando el horario (las dos columnas se mueven juntas).
 
 export const STEP = 15;
 export const HALVES = [
-  { start: 9 * 60, end: 16 * 60 },
-  { start: 16 * 60, end: 23 * 60 },
+  { start: 0, end: 12 * 60 },
+  { start: 12 * 60, end: 24 * 60 },
 ] as const;
+/** Horas en que se suele anotar: se usan para buscar un espacio libre, para entender "de 4 a 7" y para
+ *  ubicar el horario al abrirlo. Para cambiarlas, basta con cambiar estas horas. */
+export const USUAL = { start: 9 * 60, end: 23 * 60 } as const;
 export const DAY_START = HALVES[0].start;
 export const DAY_END = HALVES[1].end;
 export const SPLIT = HALVES[0].end;
@@ -40,19 +43,46 @@ export function timeAt(lanes: HTMLElement[], x: number, y: number) {
   return h.start + clamp((y - r.top) / r.height, 0, 1) * (h.end - h.start);
 }
 
+/**
+ * Mientras se arrastra, desplaza el horario si el puntero está cerca de su borde de arriba o de abajo.
+ * Sigue desplazando aunque el puntero esté quieto; `onScroll` permite recalcular la hora bajo el puntero.
+ */
+export function edgeScroller(box: HTMLElement | null, onScroll: () => void) {
+  let y: number | null = null;
+  let frame = 0;
+  const tick = () => {
+    frame = 0;
+    if (!box || y === null) return;
+    const r = box.getBoundingClientRect();
+    const zone = Math.min(48, r.height / 4);
+    const speed = y < r.top + zone && y > r.top - zone ? -(r.top + zone - y) / 4
+      : y > r.bottom - zone && y < r.bottom + zone ? (y - (r.bottom - zone)) / 4 : 0;
+    if (!speed) return;
+    const before = box.scrollTop;
+    box.scrollTop += Math.round(speed);
+    if (box.scrollTop === before) return;
+    onScroll();
+    if (!frame) frame = requestAnimationFrame(tick);
+  };
+  return {
+    update(py: number) { y = py; if (!frame) frame = requestAnimationFrame(tick); },
+    stop() { y = null; cancelAnimationFrame(frame); frame = 0; },
+  };
+}
+
 export const isOver = (el: Element | null, x: number, y: number) => {
   if (!el) return false;
   const r = el.getBoundingClientRect();
   return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
 };
 
-/** Primer espacio libre desde ahora; si no hay, desde el inicio del día. */
+/** Primer espacio libre en el horario habitual desde ahora; si no hay, desde el inicio del horario habitual. */
 export function nextFreeSlot(blocks: { start: number; end: number }[], nowMin: number, len = DEFAULT_LEN) {
   const free = (s: number) => blocks.every((b) => b.end <= s || b.start >= s + len);
-  const from = Math.max(DAY_START, Math.ceil(nowMin / STEP) * STEP);
-  for (let s = from; s + len <= DAY_END; s += STEP) if (free(s)) return s;
-  for (let s = DAY_START; s + len <= DAY_END; s += STEP) if (free(s)) return s;
-  return DAY_END - len;
+  const from = Math.max(USUAL.start, Math.ceil(nowMin / STEP) * STEP);
+  for (let s = from; s + len <= USUAL.end; s += STEP) if (free(s)) return s;
+  for (let s = USUAL.start; s + len <= USUAL.end; s += STEP) if (free(s)) return s;
+  return USUAL.end - len;
 }
 
 /** Un bloque nuevo a partir de una hora escrita: dentro del horario; hasta `end` si se escribió un rango, si no, de 30 minutos. */

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { addDays, capFirst, dateLabel, fmt, isoDate, longDay, longToday, minutesOf, startOfDay, startOfWeek, type Day } from './lib/dates.ts';
-import { DAY_START, nextFreeSlot } from './lib/schedule.ts';
+import { nextFreeSlot } from './lib/schedule.ts';
 import { isBlock } from './data/types.ts';
 import { isMood, toneOf, type Mood } from './lib/tones.ts';
 import { openRepo } from './data/repo.ts';
@@ -128,7 +128,7 @@ export default function App() {
   const where = scheduleDay === today ? '' : scheduleLabel.includes('mañana') ? ` de ${scheduleLabel}` : ` del ${scheduleLabel}`;
   const scheduleBlocks = scheduleDay === today ? blocks : viewBlocks;
   const freeSlot = useCallback(
-    () => nextFreeSlot(scheduleBlocks, scheduleDay === today ? nowMin : DAY_START),
+    () => nextFreeSlot(scheduleBlocks, scheduleDay === today ? nowMin : 0),
     [scheduleBlocks, scheduleDay, today, nowMin],
   );
   const toBlock = useCallback((id: string, start: number) => actions.toBlock(id, start, scheduleDay), [actions, scheduleDay]);
@@ -272,7 +272,7 @@ export default function App() {
                   </ul>
                 </section>
               )}
-              <DayView blocks={viewBlocks} when={dayWhen} nowMin={nowMin} actions={actions} lanes={lanes} blockEls={blockEls} taskCard={taskCard}
+              <DayView day={viewDay} blocks={viewBlocks} when={dayWhen} nowMin={nowMin} actions={actions} lanes={lanes} blockEls={blockEls} taskCard={taskCard}
                 preview={preview} onDropState={setDropClass}
                 onToList={(b) => {
                   actions.toTask(b.id, today);

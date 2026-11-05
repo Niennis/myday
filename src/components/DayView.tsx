@@ -1,9 +1,10 @@
-// Vista diaria en dos columnas (ver HALVES en lib/schedule.ts). Los bloques se arrastran, se estiran desde
-// el borde inferior y se mueven con el teclado. Un bloque que cruza de una columna a otra sigue en la segunda.
+// Vista diaria: el día completo en dos columnas (ver HALVES en lib/schedule.ts) que se desplazan juntas, como
+// una agenda con scroll. Los bloques se arrastran, se estiran desde el borde inferior y se mueven con el teclado.
+// Un bloque que cruza de una columna a otra sigue en la segunda.
 // Muestra hoy u otro día; los días pasados se pueden ver y abrir, pero sus bloques no se mueven.
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import { fmt } from '../lib/dates.ts';
-import { clamp, DAY_END, DAY_START, DEFAULT_LEN, HALVES, halfOf, isOver, position, snap, SPLIT, STEP, timeAt } from '../lib/schedule.ts';
+import { clamp, DAY_END, DAY_START, DEFAULT_LEN, edgeScroller, HALVES, halfOf, isOver, position, snap, SPLIT, STEP, timeAt, USUAL } from '../lib/schedule.ts';
 import type { Item } from '../data/types.ts';
 import type { DayActions } from '../state/useDay.ts';
 import { useAnnounce } from './Announcer.tsx';
@@ -12,6 +13,8 @@ import { stepCount, ToneTag } from './Steps.tsx';
 type Block = Item & { start: number; end: number };
 
 interface Props {
+  /** El día que se ve: al cambiar, el horario se ubica de nuevo. */
+  day: string;
   blocks: Block[];
   /** Si el día que se ve ya pasó, es hoy o viene. */
   when: 'past' | 'today' | 'future';
@@ -28,11 +31,27 @@ interface Props {
   openBlock: (b: Block) => void;
 }
 
-export function DayView({ blocks, when, nowMin, actions, lanes, blockEls, taskCard, preview, onDropState, onToList, openBlock }: Props) {
+export function DayView({ day, blocks, when, nowMin, actions, lanes, blockEls, taskCard, preview, onDropState, onToList, openBlock }: Props) {
   const past = when === 'past';
   const isPast = (b: Block) => past || (when === 'today' && b.end <= nowMin);
   const announce = useAnnounce();
   const dayRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Al abrir un día, el horario se desplaza a algo útil: hoy, a la hora actual (con una hora antes a la vista);
+  // otro día, a lo primero que esté anotado en cualquiera de las dos columnas; sin nada, al inicio del horario habitual.
+  useLayoutEffect(() => {
+    const box = scrollRef.current;
+    const lane = lanes.current?.[0];
+    if (!box || !lane) return;
+    const inColumn = (m: number) => m % SPLIT;
+    const target = when === 'today'
+      ? inColumn(nowMin) - 60
+      : (blocks.length ? Math.min(...blocks.map((b) => inColumn(b.start))) : USUAL.start) - 30;
+    box.scrollTop = (Math.max(0, target) / (SPLIT - DAY_START)) * lane.clientHeight;
+    // Solo al cambiar de día: no se mueve mientras la persona usa el horario.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [day]);
   // Mientras se arrastra, la nueva hora se dibuja aquí y se guarda solo al soltar.
   const [draft, setDraft] = useState<{ id: string; start: number; end: number } | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -73,8 +92,13 @@ export function DayView({ blocks, when, nowMin, actions, lanes, blockEls, taskCa
     const day = e.currentTarget;
     day.setPointerCapture(e.pointerId);
     setDragId(b.id);
+    // Cerca del borde del horario, se desplaza solo; la hora se recalcula con la última posición del puntero.
+    let last: PointerEvent | null = null;
+    const scroller = edgeScroller(scrollRef.current, () => { if (last) onMove(last); });
 
     const onMove = (ev: PointerEvent) => {
+      last = ev;
+      scroller.update(ev.clientY);
       // Sobre la lista de tareas: el bloque queda quieto y la lista se marca para soltarlo ahí.
       if (mode === 'move') {
         toList = isOver(taskCard.current, ev.clientX, ev.clientY);
@@ -92,6 +116,7 @@ export function DayView({ blocks, when, nowMin, actions, lanes, blockEls, taskCa
       }
     };
     const onUp = (ev: PointerEvent) => {
+      scroller.stop();
       day.removeEventListener('pointermove', onMove);
       day.removeEventListener('pointerup', onUp);
       day.removeEventListener('pointercancel', onUp);
@@ -128,12 +153,17 @@ export function DayView({ blocks, when, nowMin, actions, lanes, blockEls, taskCa
     }
     actions.moveBlock(b.id, start, end);
     announce(`${b.title}: ${fmt(start)} a ${fmt(end)}`);
+    // El bloque sigue a la vista aunque se mueva fuera de lo que se ve del horario.
+    requestAnimationFrame(() => blockEls.current?.get(b.id)?.scrollIntoView({ block: 'nearest' }));
   };
 
   const previewStart = preview?.start ?? null;
 
   return (
     <div className={`card day${preview ? ' drop-ready' : ''}`} ref={dayRef} onPointerDown={onPointerDown}>
+      {/* Se puede enfocar para desplazarlo con el teclado (flechas, Re Pág, Av Pág) aunque el día esté vacío. */}
+      <div className="day-scroll" ref={scrollRef} tabIndex={0} role="region" aria-label="Horario del día, de 0:00 a 24:00">
+      <div className="day-cols">
       {HALVES.map((h, i) => {
         const hours = [];
         for (let m = h.start; m < h.end; m += 60) hours.push(<li key={m}>{fmt(m)}</li>);
@@ -188,6 +218,8 @@ export function DayView({ blocks, when, nowMin, actions, lanes, blockEls, taskCa
           </div>
         );
       })}
+      </div>
+      </div>
     </div>
   );
 }

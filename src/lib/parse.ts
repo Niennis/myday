@@ -3,7 +3,7 @@
 // ni "a las 5 de la tarde", y deja restos ("el", "que viene") en el título.
 
 import { addDays, startOfDay } from './dates.ts';
-import { DAY_END, DAY_START } from './schedule.ts';
+import { USUAL } from './schedule.ts';
 import type { Tone } from './tones.ts';
 
 export interface Parsed {
@@ -56,13 +56,13 @@ export function parse(text: string, now: Date): Parsed {
   else if (take(rx('con calma'))) tone = 'calma';
 
   // Rango: "de 13:00 a 14:00", "10:00 - 11:30", "desde las 9 hasta las 11", "de 4 a 6 de la tarde".
-  // Sin ":", "las" ni "de la tarde" ("de 16 a 19") solo cuenta si empieza dentro del horario de la app,
+  // Sin ":", "las" ni "de la tarde" ("de 16 a 19") solo cuenta si empieza dentro del horario habitual (USUAL),
   // para no confundirlo con "leer de 2 a 3 capítulos".
   const range = rest.match(rx('(?:(de|desde)\\s+)?(?:(las)\\s+)?(\\d{1,2})(?::(\\d{2}))?\\s*(?:a|hasta|-|–)\\s*(?:las\\s+)?(\\d{1,2})(?::(\\d{2}))?(?:\\s+de la\\s+(mañana|tarde|noche))?'));
   if (range) {
     const [, from, las, h1, m1, h2, m2, part] = range;
     const sh = Number(h1);
-    if (m1 || m2 || las || part || (from && sh * 60 >= DAY_START && sh * 60 < DAY_END)) {
+    if (m1 || m2 || las || part || (from && sh * 60 >= USUAL.start && sh * 60 < USUAL.end)) {
       const pm = part === 'tarde' || part === 'noche';
       let eh = Number(h2);
       if (pm && eh < 12) eh += 12;
